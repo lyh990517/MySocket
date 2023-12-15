@@ -1,23 +1,26 @@
 import java.net.InetSocketAddress
-import java.net.ServerSocket
+import java.nio.ByteBuffer
+import java.nio.channels.ServerSocketChannel
+import java.nio.charset.StandardCharsets
 
 class IOServer {
     fun openServer() {
         runCatching {
             println("open server")
-            val server = ServerSocket()
+            val server = ServerSocketChannel.open()
             server.bind(InetSocketAddress("localhost",8080))
             while (true){
                 val client = server.accept()
-                val request = ByteArray(1024)
-                val inputStream = client.getInputStream()
-                inputStream.read(request)
-                println(request.decodeToString())
+                val buffer = ByteBuffer.allocateDirect(1024)
+                client.read(buffer)
+                buffer.flip()
+                val body = StandardCharsets.UTF_8.decode(buffer)
+                println(body)
 
-                val outputStream = client.getOutputStream()
-                val response = "im server"
-                outputStream.write(response.toByteArray())
-                outputStream.flush()
+
+                val response = ByteBuffer.wrap("im server".toByteArray())
+                client.write(response)
+                client.close()
             }
         }.onFailure {
             it.printStackTrace()
